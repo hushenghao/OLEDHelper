@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">OLED Helper</string>
+    <string name="service_name">OLED Background Service</string>
+</resources>
