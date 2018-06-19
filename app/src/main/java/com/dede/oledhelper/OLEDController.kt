@@ -5,11 +5,16 @@ import android.graphics.Color
 import android.graphics.PixelFormat
 import android.os.Binder
 import android.os.Build
+import android.provider.Settings
 import android.support.annotation.IntRange
 import android.view.View
 import android.view.WindowManager
 
 class OLEDController(private val context: Context) : Binder() {
+
+    companion object {
+        const val KEY_ALPHA = "alpha"
+    }
 
     private var isShowing = false
 
@@ -23,17 +28,17 @@ class OLEDController(private val context: Context) : Binder() {
 
     private val params by lazy {
         val params = WindowManager.LayoutParams()
-        params.width = -1
-        params.height = -1
-        params.alpha = OLEDService.DEFAULT_ALPHA
+        params.width = WindowManager.LayoutParams.MATCH_PARENT
+        params.height = WindowManager.LayoutParams.MATCH_PARENT
+        params.alpha = context.loadAlpha()
         params.type = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            // 8.0以上无法使用值小于2035的Type，蒙版无法覆盖状态栏和虚拟按键栏
             WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
         } else {
             WindowManager.LayoutParams.TYPE_SYSTEM_OVERLAY
         }
         params.flags = WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
                 WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or
-                WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
                 WindowManager.LayoutParams.FLAG_FULLSCREEN
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             params.flags = params.flags or WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS
@@ -47,6 +52,9 @@ class OLEDController(private val context: Context) : Binder() {
     }
 
     fun open() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            if (!Settings.canDrawOverlays(context)) return
+        }
         if (!isShowing) {
             manager.addView(view, params)
             isShowing = true
@@ -61,13 +69,24 @@ class OLEDController(private val context: Context) : Binder() {
     }
 
     fun updateAlpha(@IntRange(from = 0, to = 1) alpha: Float) {
-        params.alpha = alpha
+        if (alpha > OLEDService.MAX_ALPHA)
+            params.alpha = OLEDService.MAX_ALPHA
+        else
+            params.alpha = alpha
         if (isShowing) {
             manager.updateViewLayout(view, params)
         }
     }
 
-    fun getAlpha():Float {
+    fun toggle() {
+        if (isShowing) {
+            close()
+        } else {
+            open()
+        }
+    }
+
+    fun getAlpha(): Float {
         return params.alpha
     }
 }

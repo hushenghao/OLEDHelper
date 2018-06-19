@@ -16,6 +16,7 @@ class OLEDService : Service() {
 
     companion object {
         const val DEFAULT_ALPHA = .3f
+        const val MAX_ALPHA = .8f
     }
 
     private val closeRec by lazy { CloseBroadcastReceiver() }
@@ -32,12 +33,15 @@ class OLEDService : Service() {
     }
 
     override fun onRebind(intent: Intent?) {
-        unregisterReceiver(closeRec)
-        stopForeground(true)
+        if (intent?.getBooleanExtra(TService.FROM_TILE, false) == false) {
+            unregisterReceiver(closeRec)
+            stopForeground(true)
+        }
         super.onRebind(intent)
     }
 
     override fun onUnbind(intent: Intent?): Boolean {
+        saveAlpha(iBinder.getAlpha())
         if (!iBinder.isShow()) {
             stopSelf()
             return super.onUnbind(intent)
@@ -50,6 +54,7 @@ class OLEDService : Service() {
                         0
                 )
         builder.setContentTitle(resources.getString(R.string.service_name))
+                .setContentText("正在运行")
                 .setSmallIcon(R.mipmap.ic_launcher_round)
                 .setContentIntent(pendingIntent)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {

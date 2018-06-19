@@ -9,6 +9,7 @@ import android.os.Build
 import android.os.Bundle
 import android.os.IBinder
 import android.provider.Settings
+import android.support.v7.app.AlertDialog
 import android.support.v7.app.AppCompatActivity
 import android.widget.SeekBar
 import android.widget.Toast
@@ -34,8 +35,7 @@ class MainActivity : AppCompatActivity(), ServiceConnection {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        seek_bar.max = 80
-        seek_bar.progress = (OLEDService.DEFAULT_ALPHA * 100).toInt()
+        seek_bar.max = (OLEDService.MAX_ALPHA * 100).toInt()
 
         val intent = Intent(this, OLEDService::class.java)
         startService(intent)
@@ -43,10 +43,8 @@ class MainActivity : AppCompatActivity(), ServiceConnection {
 
         seek_bar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
-                if (switch_.isChecked) {
-                    val alpha = progress.toFloat() / 100f
-                    controller?.updateAlpha(alpha)
-                }
+                val alpha = progress.toFloat() / 100f
+                controller?.updateAlpha(alpha)
             }
 
             override fun onStartTrackingTouch(seekBar: SeekBar?) {
@@ -69,11 +67,18 @@ class MainActivity : AppCompatActivity(), ServiceConnection {
         super.onResume()
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M)
             return
-        if (!Settings.canDrawOverlays(this)) {
-            val intent = Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                    Uri.parse("package:$packageName"))
-            startActivityForResult(intent, 10)
-        }
+        if (Settings.canDrawOverlays(this))
+            return
+        AlertDialog.Builder(this)
+                .setTitle("请求权限")
+                .setMessage("添加屏幕蒙版，需要“允许出现在其他应用上”的权限。")
+                .setPositiveButton("去设置") { _, _ ->
+                    val intent = Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                            Uri.parse("package:$packageName"))
+                    startActivityForResult(intent, 10)
+                }
+                .create()
+                .show()
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
