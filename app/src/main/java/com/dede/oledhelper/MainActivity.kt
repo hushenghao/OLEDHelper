@@ -1,5 +1,7 @@
 package com.dede.oledhelper
 
+import android.app.Activity
+import android.app.AlertDialog
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
@@ -9,14 +11,12 @@ import android.os.Build
 import android.os.Bundle
 import android.os.IBinder
 import android.provider.Settings
-import android.support.v7.app.AlertDialog
-import android.support.v7.app.AppCompatActivity
 import android.widget.SeekBar
 import android.widget.Toast
 import kotlinx.android.synthetic.main.activity_main.*
 
 
-class MainActivity : AppCompatActivity(), ServiceConnection {
+class MainActivity : Activity(), ServiceConnection {
 
     private var controller: OLEDController? = null
 
@@ -89,6 +89,20 @@ class MainActivity : AppCompatActivity(), ServiceConnection {
                 return
             if (!Settings.canDrawOverlays(this)) {
                 Toast.makeText(this, "权限异常", Toast.LENGTH_SHORT).show()
+            } else {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    AlertDialog.Builder(this)
+                            .setTitle("关闭通知栏通知")
+                            .setMessage("Android 8.0及以上系统，添加屏幕悬浮窗后，会在通知栏显示通知，是否到设置关闭？")
+                            .setNegativeButton("取消", null)
+                            .setPositiveButton("去设置") { _, _ ->
+                                val intent = Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+                                intent.putExtra(Settings.EXTRA_APP_PACKAGE, "android")
+                                startActivity(intent)
+                            }
+                            .create()
+                            .show()
+                }
             }
         }
     }

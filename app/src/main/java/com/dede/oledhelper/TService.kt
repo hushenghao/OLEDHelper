@@ -5,6 +5,7 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
+import android.graphics.drawable.Icon
 import android.os.Build
 import android.os.IBinder
 import android.service.quicksettings.Tile
@@ -50,10 +51,12 @@ class TService : TileService(), ServiceConnection {
      * 更新Tile状态
      */
     private fun update() {
-        qsTile.state = if (controller?.isShow() == true) {
-            Tile.STATE_ACTIVE
+        if (controller?.isShow() == true) {
+            qsTile.icon = Icon.createWithResource(this, R.drawable.ic_tile)
+            qsTile.state = Tile.STATE_ACTIVE
         } else {
-            Tile.STATE_INACTIVE
+            qsTile.icon = Icon.createWithResource(this, R.drawable.ic_tile_2)
+            qsTile.state = Tile.STATE_INACTIVE
         }
         qsTile.updateTile()
     }

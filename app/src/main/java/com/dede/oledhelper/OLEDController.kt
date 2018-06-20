@@ -6,7 +6,6 @@ import android.graphics.PixelFormat
 import android.os.Binder
 import android.os.Build
 import android.provider.Settings
-import android.support.annotation.IntRange
 import android.view.View
 import android.view.WindowManager
 
@@ -39,7 +38,8 @@ class OLEDController(private val context: Context) : Binder() {
         }
         params.flags = WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
                 WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or
-                WindowManager.LayoutParams.FLAG_FULLSCREEN
+                WindowManager.LayoutParams.FLAG_FULLSCREEN or
+                WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             params.flags = params.flags or WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS
         }
@@ -68,7 +68,7 @@ class OLEDController(private val context: Context) : Binder() {
         }
     }
 
-    fun updateAlpha(@IntRange(from = 0, to = 1) alpha: Float) {
+    fun updateAlpha(alpha: Float) {
         if (alpha > OLEDService.MAX_ALPHA)
             params.alpha = OLEDService.MAX_ALPHA
         else
