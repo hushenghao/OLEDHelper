@@ -5,6 +5,7 @@
     <style name="AppTheme" parent="android:Theme.Holo.Dialog">
         <!-- Customize your theme here. -->
         <item name="android:windowTitleStyle">@style/ActionBarStyle</item>
+        <item name="android:backgroundDimEnabled">false</item>
     </style>
 
     <style name="ActionBarStyle" parent="android:Widget.Holo.ActionBar">
