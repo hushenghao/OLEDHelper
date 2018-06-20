@@ -11,7 +11,9 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
-        <activity android:name=".MainActivity">
+        <activity
+            android:name=".MainActivity"
+            android:excludeFromRecents="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <!-- 重载tile长按事件 -->
@@ -24,6 +26,7 @@
         <service
             android:name=".OLEDService"
             android:label="@string/service_name" />
+
         <service
             android:name=".TService"
             android:icon="@drawable/ic_tile"
@@ -32,7 +35,6 @@
             <intent-filter>
                 <action android:name="android.service.quicksettings.action.QS_TILE" />
             </intent-filter>
-
         </service>
     </application>
 

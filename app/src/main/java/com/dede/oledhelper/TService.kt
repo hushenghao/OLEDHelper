@@ -1,10 +1,11 @@
 package com.dede.oledhelper
 
-import android.annotation.SuppressLint
+import android.annotation.TargetApi
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
+import android.os.Build
 import android.os.IBinder
 import android.service.quicksettings.Tile
 import android.service.quicksettings.TileService
@@ -12,7 +13,7 @@ import android.service.quicksettings.TileService
 /**
  * Created by hsh on 2018/6/19.
  */
-@SuppressLint("NewApi")
+@TargetApi(Build.VERSION_CODES.N)
 class TService : TileService(), ServiceConnection {
 
     companion object {
@@ -42,7 +43,6 @@ class TService : TileService(), ServiceConnection {
     }
 
     override fun onStartListening() {
-        super.onStartListening()
         update()
     }
 
@@ -59,13 +59,12 @@ class TService : TileService(), ServiceConnection {
     }
 
     override fun onClick() {
-        super.onClick()
         controller?.toggle()
         update()
     }
 
-    override fun onDestroy() {
-        super.onDestroy()
+    override fun onUnbind(intent: Intent?): Boolean {
         unbindService(this)
+        return true
     }
 }
