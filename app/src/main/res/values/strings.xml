@@ -1,4 +1,7 @@
 <resources>
     <string name="app_name">OLED Helper</string>
     <string name="service_name">OLED Background Service</string>
+    <string name="notify_click">点击进入应用设置</string>
+    <string name="notify_action_close">关闭</string>
+    <string name="notify_channel_name">后台运行通知</string>
 </resources>

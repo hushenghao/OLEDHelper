@@ -1,5 +1,6 @@
 package com.dede.oledhelper
 
+import android.Manifest
 import android.app.Activity
 import android.app.AlertDialog
 import android.content.ComponentName
@@ -16,29 +17,28 @@ import android.view.WindowManager
 import android.widget.SeekBar
 import android.widget.Toast
 import kotlinx.android.synthetic.main.activity_main.*
+import kotlin.properties.Delegates
 
 
 class MainActivity : Activity(), ServiceConnection {
 
-    private var controller: OLEDController? = null
+    private var aidl: IOLED by Delegates.notNull()
 
     override fun onServiceDisconnected(name: ComponentName?) {
     }
 
     override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
-        if (service != null && service is OLEDController) {
-            controller = service
-            seek_bar.progress = (controller!!.getAlpha() * 100).toInt()
-            switch_.isChecked = controller!!.isShow()
-        }
+        aidl = IOLED.Stub.asInterface(service)
+        seek_bar.progress = ((1 - aidl.alpha) * 100).toInt()
+        switch_.isChecked = aidl.isShow
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         if (BuildConfig.DEBUG) {
             StrictMode.setThreadPolicy(StrictMode.ThreadPolicy.Builder()
-//                    .detectDiskReads()
-//                    .detectDiskWrites()
+                    .detectDiskReads()
+                    .detectDiskWrites()
                     .detectCustomSlowCalls()
                     .detectNetwork()   // or .detectAll() for all detectable problems
                     .penaltyLog()
@@ -63,8 +63,8 @@ class MainActivity : Activity(), ServiceConnection {
 
         seek_bar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
-                val alpha = progress.toFloat() / 100f
-                controller?.updateAlpha(alpha)
+                val alpha = 1 - progress.toFloat() / 100f
+                aidl.updateAlpha(alpha)
             }
 
             override fun onStartTrackingTouch(seekBar: SeekBar?) {
@@ -76,19 +76,18 @@ class MainActivity : Activity(), ServiceConnection {
 
         switch_.setOnCheckedChangeListener { _, isChecked ->
             if (!isChecked) {
-                controller?.close()
+                aidl.dismiss()
             } else {
-                controller?.open()
+                aidl.show()
             }
         }
+        requestDrawOverlays()
     }
 
-    override fun onResume() {
-        super.onResume()
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M)
-            return
-        if (Settings.canDrawOverlays(this))
-            return
+    private fun requestDrawOverlays() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) return
+        if (Settings.canDrawOverlays(this)) return
+
         AlertDialog.Builder(this)
                 .setTitle("请求权限")
                 .setMessage("添加屏幕蒙版，需要“允许出现在其他应用上”的权限。")
@@ -97,6 +96,8 @@ class MainActivity : Activity(), ServiceConnection {
                             Uri.parse("package:$packageName"))
                     startActivityForResult(intent, 10)
                 }
+                .setCancelable(true)
+                .setNegativeButton("取消", null)
                 .create()
                 .show()
     }
@@ -104,25 +105,24 @@ class MainActivity : Activity(), ServiceConnection {
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
 
-        if (requestCode == 10) {
-            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M)
-                return
-            if (!Settings.canDrawOverlays(this)) {
-                Toast.makeText(this, "权限异常", Toast.LENGTH_SHORT).show()
-            } else {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    AlertDialog.Builder(this)
-                            .setTitle("关闭通知栏通知")
-                            .setMessage("Android 8.0及以上系统，添加屏幕悬浮窗后，会在通知栏显示通知，是否到设置关闭？")
-                            .setNegativeButton("取消", null)
-                            .setPositiveButton("去设置") { _, _ ->
-                                val intent = Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
-                                intent.putExtra(Settings.EXTRA_APP_PACKAGE, "android")
-                                startActivity(intent)
-                            }
-                            .create()
-                            .show()
-                }
+        if (requestCode != 10) return
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) return
+
+        if (!Settings.canDrawOverlays(this)) {
+            Toast.makeText(this, "权限异常", Toast.LENGTH_SHORT).show()
+        } else {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                AlertDialog.Builder(this)
+                        .setTitle("关闭通知栏通知")
+                        .setMessage("Android 8.0及以上系统，添加屏幕悬浮窗后，会在通知栏显示通知，是否到设置关闭？")
+                        .setNegativeButton("取消", null)
+                        .setPositiveButton("去设置") { _, _ ->
+                            val intent = Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+                            intent.putExtra(Settings.EXTRA_APP_PACKAGE, "android")
+                            startActivity(intent)
+                        }
+                        .create()
+                        .show()
             }
         }
     }

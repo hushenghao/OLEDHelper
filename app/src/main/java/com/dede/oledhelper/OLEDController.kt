@@ -3,16 +3,20 @@ package com.dede.oledhelper
 import android.content.Context
 import android.graphics.Color
 import android.graphics.PixelFormat
-import android.os.Binder
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import android.provider.Settings
+import android.util.Log
 import android.view.View
 import android.view.WindowManager
+import kotlin.properties.Delegates
 
-class OLEDController(private val context: Context) : Binder() {
+class OLEDController(private val context: Context) {
 
     companion object {
         const val KEY_ALPHA = "alpha"
+        private const val TAG = "OLEDController"
     }
 
     private var isShowing = false
@@ -24,6 +28,8 @@ class OLEDController(private val context: Context) : Binder() {
         view.setBackgroundColor(Color.BLACK)
         view
     }
+
+    private val handler by lazy { Handler(Looper.getMainLooper()) }
 
     private val params by lazy {
         val params = WindowManager.LayoutParams()
@@ -51,18 +57,20 @@ class OLEDController(private val context: Context) : Binder() {
         return isShowing
     }
 
-    fun open() {
+    fun show() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             if (!Settings.canDrawOverlays(context)) return
         }
-        if (!isShowing) {
+        if (isShowing) return
+        handler.post {
             manager.addView(view, params)
             isShowing = true
         }
     }
 
-    fun close() {
-        if (isShowing) {
+    fun dismiss() {
+        if (!isShowing) return
+        handler.post {
             manager.removeView(view)
             isShowing = false
         }
@@ -74,15 +82,17 @@ class OLEDController(private val context: Context) : Binder() {
         else
             params.alpha = alpha
         if (isShowing) {
-            manager.updateViewLayout(view, params)
+            handler.post {
+                manager.updateViewLayout(view, params)
+            }
         }
     }
 
     fun toggle() {
         if (isShowing) {
-            close()
+            dismiss()
         } else {
-            open()
+            show()
         }
     }
 

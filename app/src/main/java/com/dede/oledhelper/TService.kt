@@ -10,6 +10,7 @@ import android.os.Build
 import android.os.IBinder
 import android.service.quicksettings.Tile
 import android.service.quicksettings.TileService
+import kotlin.properties.Delegates
 
 /**
  * Created by hsh on 2018/6/19.
@@ -24,34 +25,32 @@ class TService : TileService(), ServiceConnection {
     override fun onServiceDisconnected(name: ComponentName?) {
     }
 
-    private var controller: OLEDController? = null
+    private var aidl: IOLED by Delegates.notNull()
 
     override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
-        if (service != null && service is OLEDController) {
-            controller = service
-        }
+        aidl = IOLED.Stub.asInterface(service)
+        update()
     }
 
     /**
-     * 添加到快捷通知栏以后，绑定OLEDService
+     * 显示快捷通知栏以后，绑定OLEDService
      */
-    override fun onBind(intent: Intent?): IBinder {
+    override fun onStartListening() {
         val service = Intent(this, OLEDService::class.java)
         service.putExtra(FROM_TILE, true)
         startService(service)
         bindService(service, this, Context.BIND_AUTO_CREATE)
-        return super.onBind(intent)
     }
 
-    override fun onStartListening() {
-        update()
+    override fun onStopListening() {
+        unbindService(this)
     }
 
     /**
      * 更新Tile状态
      */
     private fun update() {
-        if (controller?.isShow() == true) {
+        if (aidl.isShow) {
             qsTile.icon = Icon.createWithResource(this, R.drawable.ic_tile)
             qsTile.state = Tile.STATE_ACTIVE
         } else {
@@ -62,12 +61,8 @@ class TService : TileService(), ServiceConnection {
     }
 
     override fun onClick() {
-        controller?.toggle()
+        aidl.toggle()
         update()
     }
 
-    override fun onUnbind(intent: Intent?): Boolean {
-        unbindService(this)
-        return true
-    }
 }
