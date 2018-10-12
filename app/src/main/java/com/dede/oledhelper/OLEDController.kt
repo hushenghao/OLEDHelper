@@ -64,16 +64,16 @@ class OLEDController(private val context: Context) {
         if (isShowing) return
         handler.post {
             manager.addView(view, params)
-            isShowing = true
         }
+        isShowing = true
     }
 
     fun dismiss() {
         if (!isShowing) return
         handler.post {
             manager.removeView(view)
-            isShowing = false
         }
+        isShowing = false
     }
 
     fun updateAlpha(alpha: Float) {

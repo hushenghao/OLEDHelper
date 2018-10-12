@@ -29,7 +29,7 @@ class TService : TileService(), ServiceConnection {
 
     override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
         aidl = IOLED.Stub.asInterface(service)
-        update()
+        updateTile()
     }
 
     /**
@@ -49,7 +49,7 @@ class TService : TileService(), ServiceConnection {
     /**
      * 更新Tile状态
      */
-    private fun update() {
+    private fun updateTile() {
         if (aidl.isShow) {
             qsTile.icon = Icon.createWithResource(this, R.drawable.ic_tile)
             qsTile.state = Tile.STATE_ACTIVE
@@ -62,7 +62,7 @@ class TService : TileService(), ServiceConnection {
 
     override fun onClick() {
         aidl.toggle()
-        update()
+        updateTile()
     }
 
 }

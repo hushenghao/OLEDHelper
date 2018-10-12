@@ -62,15 +62,21 @@ class MainActivity : Activity(), ServiceConnection {
         bindService(intent, this, Context.BIND_AUTO_CREATE)
 
         seek_bar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
-                val alpha = 1 - progress.toFloat() / 100f
-                aidl.updateAlpha(alpha)
+            override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {
+                if (switch_.isChecked) {
+                    aidl.updateAlpha(getAlpha(seekBar))
+                }
             }
 
             override fun onStartTrackingTouch(seekBar: SeekBar?) {
             }
 
-            override fun onStopTrackingTouch(seekBar: SeekBar?) {
+            override fun onStopTrackingTouch(seekBar: SeekBar) {
+                aidl.updateAlpha(getAlpha(seekBar))
+            }
+
+            private fun getAlpha(seekBar: SeekBar): Float {
+                return 1 - seekBar.progress.toFloat() / 100f
             }
         })
 
