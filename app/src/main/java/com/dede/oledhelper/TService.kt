@@ -1,10 +1,7 @@
 package com.dede.oledhelper
 
 import android.annotation.TargetApi
-import android.content.ComponentName
-import android.content.Context
-import android.content.Intent
-import android.content.ServiceConnection
+import android.content.*
 import android.graphics.drawable.Icon
 import android.os.Build
 import android.os.IBinder
@@ -32,6 +29,13 @@ class TService : TileService(), ServiceConnection {
         updateTile()
     }
 
+    private val innerCloseReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            unbindService(this@TService)
+            updateTile(false)
+        }
+    }
+
     /**
      * 显示快捷通知栏以后，绑定OLEDService
      */
@@ -40,17 +44,21 @@ class TService : TileService(), ServiceConnection {
         service.putExtra(FROM_TILE, true)
         startService(service)
         bindService(service, this, Context.BIND_AUTO_CREATE)
+
+        val intentFilter = IntentFilter(CloseActionReceiver.ACTION_CLOSE)
+        registerReceiver(innerCloseReceiver, intentFilter)
     }
 
     override fun onStopListening() {
+        unregisterReceiver(innerCloseReceiver)
         unbindService(this)
     }
 
     /**
      * 更新Tile状态
      */
-    private fun updateTile() {
-        if (aidl.isShow) {
+    private fun updateTile(isShow: Boolean) {
+        if (isShow) {
             qsTile.icon = Icon.createWithResource(this, R.drawable.ic_tile)
             qsTile.state = Tile.STATE_ACTIVE
         } else {
@@ -58,6 +66,10 @@ class TService : TileService(), ServiceConnection {
             qsTile.state = Tile.STATE_INACTIVE
         }
         qsTile.updateTile()
+    }
+
+    private fun updateTile() {
+        updateTile(aidl.isShow)
     }
 
     override fun onClick() {

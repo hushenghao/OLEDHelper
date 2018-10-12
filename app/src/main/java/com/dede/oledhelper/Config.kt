@@ -28,3 +28,7 @@ fun Context.saveAlpha(alpha: Float) {
     }
     this.sp().edit().putFloat(OLEDController.KEY_ALPHA, a).apply()
 }
+
+object Config {
+
+}

@@ -1,6 +1,6 @@
 package com.dede.oledhelper
 
-import android.Manifest
+import android.annotation.SuppressLint
 import android.app.Activity
 import android.app.AlertDialog
 import android.content.ComponentName
@@ -8,17 +8,21 @@ import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
 import android.net.Uri
-import android.os.Build
-import android.os.Bundle
-import android.os.IBinder
-import android.os.StrictMode
+import android.os.*
 import android.provider.Settings
+import android.view.View
 import android.view.WindowManager
 import android.widget.SeekBar
 import android.widget.Toast
 import kotlinx.android.synthetic.main.activity_main.*
 import kotlin.properties.Delegates
 
+
+private val isMoreThanM = Build.VERSION.SDK_INT >= Build.VERSION_CODES.M
+private val isMoreThanO = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
+
+private const val REQUEST_DRAW_OVERLAY_CODE = 10
+private const val REQUEST_IGNORE_BATTERY_OPTIMIZATIONS_CODE = 20
 
 class MainActivity : Activity(), ServiceConnection {
 
@@ -33,6 +37,7 @@ class MainActivity : Activity(), ServiceConnection {
         switch_.isChecked = aidl.isShow
     }
 
+    @SuppressLint("BatteryLife")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         if (BuildConfig.DEBUG) {
@@ -87,48 +92,91 @@ class MainActivity : Activity(), ServiceConnection {
                 aidl.show()
             }
         }
+
+        val powerManager = getSystemService(Context.POWER_SERVICE) as PowerManager
+        if (isMoreThanM && !powerManager.isIgnoringBatteryOptimizations(packageName)) {
+            tv_ignore_battery_optimization.visibility = View.VISIBLE
+        }
+        tv_ignore_battery_optimization.setOnClickListener {
+            if (!isMoreThanM) return@setOnClickListener
+
+            val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS)
+            intent.data = Uri.parse("package:$packageName")
+            startActivityForResult(intent, REQUEST_IGNORE_BATTERY_OPTIMIZATIONS_CODE)
+        }
+
+        if (isMoreThanO) {
+            tv_close_lock_notify.visibility = View.VISIBLE
+        }
+        tv_close_lock_notify.setOnClickListener {
+            if (!isMoreThanO) return@setOnClickListener
+
+            val intent = Intent(Settings.ACTION_CHANNEL_NOTIFICATION_SETTINGS)
+            intent.putExtra(Settings.EXTRA_APP_PACKAGE, packageName)
+            intent.putExtra(Settings.EXTRA_CHANNEL_ID, OLEDService.NOTIFY_CHANNEL_ID)
+            startActivity(intent)
+        }
+
+        if (isMoreThanO) {
+            tv_close_drawoverlay_notify.visibility = View.VISIBLE
+        }
+        tv_close_drawoverlay_notify.setOnClickListener {
+            goSystemNotifySetting()
+        }
+
         requestDrawOverlays()
     }
 
     private fun requestDrawOverlays() {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) return
-        if (Settings.canDrawOverlays(this)) return
+        if (!isMoreThanM || Settings.canDrawOverlays(this)) return
 
         AlertDialog.Builder(this)
-                .setTitle("请求权限")
-                .setMessage("添加屏幕蒙版，需要“允许出现在其他应用上”的权限。")
-                .setPositiveButton("去设置") { _, _ ->
+                .setTitle(R.string.request_draw_overlay)
+                .setMessage(R.string.label_draw_overlay)
+                .setPositiveButton(R.string.go_setting) { _, _ ->
                     val intent = Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
                             Uri.parse("package:$packageName"))
-                    startActivityForResult(intent, 10)
+                    startActivityForResult(intent, REQUEST_DRAW_OVERLAY_CODE)
                 }
                 .setCancelable(true)
-                .setNegativeButton("取消", null)
+                .setNegativeButton(android.R.string.cancel, null)
                 .create()
                 .show()
+    }
+
+    /**
+     * 跳转到系统通知设置页面，关闭在应用上层显示的通知
+     */
+    private fun goSystemNotifySetting() {
+        if (!isMoreThanO) return
+        val intent = Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+        intent.putExtra(Settings.EXTRA_APP_PACKAGE, "android")
+        startActivity(intent)
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
 
-        if (requestCode != 10) return
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) return
-
-        if (!Settings.canDrawOverlays(this)) {
-            Toast.makeText(this, "权限异常", Toast.LENGTH_SHORT).show()
-        } else {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+        when (requestCode) {
+            REQUEST_IGNORE_BATTERY_OPTIMIZATIONS_CODE -> {
+                tv_ignore_battery_optimization.visibility =
+                        if (resultCode == RESULT_OK) View.GONE else View.VISIBLE
+            }
+            REQUEST_DRAW_OVERLAY_CODE -> {
+                if (!isMoreThanO) return
                 AlertDialog.Builder(this)
-                        .setTitle("关闭通知栏通知")
-                        .setMessage("Android 8.0及以上系统，添加屏幕悬浮窗后，会在通知栏显示通知，是否到设置关闭？")
-                        .setNegativeButton("取消", null)
-                        .setPositiveButton("去设置") { _, _ ->
-                            val intent = Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
-                            intent.putExtra(Settings.EXTRA_APP_PACKAGE, "android")
-                            startActivity(intent)
+                        .setTitle(R.string.close_system_notify)
+                        .setMessage(R.string.apio_close_notify)
+                        .setNegativeButton(android.R.string.cancel, null)
+                        .setPositiveButton(R.string.go_setting) { _, _ ->
+                            goSystemNotifySetting()
                         }
                         .create()
                         .show()
+
+                if (isMoreThanM && !Settings.canDrawOverlays(this)) {
+                    Toast.makeText(this, R.string.draw_overlay_failed, Toast.LENGTH_SHORT).show()
+                }
             }
         }
     }

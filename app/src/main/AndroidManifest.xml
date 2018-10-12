@@ -3,6 +3,7 @@
     package="com.dede.oledhelper">
 
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
 
     <application
         android:allowBackup="true"
@@ -26,8 +27,8 @@
 
         <service
             android:name=".OLEDService"
-            android:process=":oled"
-            android:label="@string/service_name" />
+            android:label="@string/service_name"
+            android:process=":oled" />
 
         <service
             android:name=".TService"

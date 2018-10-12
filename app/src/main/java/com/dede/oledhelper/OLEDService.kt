@@ -12,16 +12,22 @@ import android.util.Log
 import kotlin.properties.Delegates
 
 
+private val isMoreThanO = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
+
 class OLEDService : Service() {
 
     companion object {
         private const val TAG = "OLEDService"
 
-        const val DEFAULT_ALPHA = .3f
-        const val MAX_ALPHA = .8f
+        /**
+         * 0 透明    1 不透明
+         * @see android.view.WindowManager.LayoutParams.alpha
+         */
+        const val DEFAULT_ALPHA = .3f// 遮罩的默认不透明度
+        const val MAX_ALPHA = .8f// 遮罩最大不透明度
 
         private const val SERVICE_ID = 0xFF00
-        private const val NOTIFY_CHANNEL_ID = "OLEDService"
+        const val NOTIFY_CHANNEL_ID = "OLEDService"
         private const val NOTIFY_CATEGORY = "OLEDService"
     }
 
@@ -85,6 +91,8 @@ class OLEDService : Service() {
         intentFilter.addAction(Intent.ACTION_SCREEN_ON)
         intentFilter.addAction(Intent.ACTION_SCREEN_OFF)
         registerReceiver(screenOpenReceiver, intentFilter)
+
+        createNotifyChannel()
     }
 
     override fun onRebind(intent: Intent?) {
@@ -102,28 +110,38 @@ class OLEDService : Service() {
         return true
     }
 
+    private fun createNotifyChannel() {
+        if (!isMoreThanO) return
+
+        val notificationManager = getSystemService(NotificationManager::class.java)
+        val notificationChannel = notificationManager.getNotificationChannel(NOTIFY_CHANNEL_ID)
+        if (notificationChannel == null) {
+            val channel = NotificationChannel(
+                    NOTIFY_CHANNEL_ID,
+                    getString(R.string.notify_channel_name),
+                    NotificationManager.IMPORTANCE_MIN
+            )
+            channel.setShowBadge(false)
+            notificationManager.createNotificationChannel(channel)
+        }
+    }
+
     private fun createNotify(): Notification {
         var intent = Intent(this, MainActivity::class.java)
         intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
         var pendingIntent = PendingIntent.getActivity(this, 0, intent, 0)
-        val builder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val notificationManager = getSystemService(NotificationManager::class.java)
-            val channel = NotificationChannel(
-                    NOTIFY_CHANNEL_ID,
-                    getString(R.string.notify_channel_name),
-                    NotificationManager.IMPORTANCE_LOW
-            )
-            channel.setShowBadge(false)
-            notificationManager.createNotificationChannel(channel)
+        val builder = if (isMoreThanO) {
+            createNotifyChannel()
             Notification.Builder(this, NOTIFY_CHANNEL_ID)
                     .setBadgeIconType(Notification.BADGE_ICON_SMALL)
         } else {
             Notification.Builder(this)
-                    .setPriority(Notification.PRIORITY_LOW)
+                    .setPriority(Notification.PRIORITY_MIN)
         }.setSmallIcon(R.drawable.ic_tile)
                 .setAutoCancel(false)
                 .setContentIntent(pendingIntent)
                 .setNumber(0)
+                .setContentTitle(getString(R.string.app_name))
                 .setContentText(getString(R.string.notify_click))
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             builder.setCategory(NOTIFY_CATEGORY)
@@ -134,14 +152,14 @@ class OLEDService : Service() {
         pendingIntent = PendingIntent.getBroadcast(this, 0, intent, 0)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             val action = Notification.Action.Builder(
-                    Icon.createWithResource(this, R.drawable.ic_tile),
+                    Icon.createWithResource(this, R.drawable.ic_close_black),
                     getString(R.string.notify_action_close),
                     pendingIntent
             )
                     .build()
             builder.addAction(action)
         } else {
-            builder.addAction(R.drawable.ic_tile, getString(R.string.notify_action_close), pendingIntent)
+            builder.addAction(R.drawable.ic_close_black, getString(R.string.notify_action_close), pendingIntent)
         }
 
         return builder.build()
