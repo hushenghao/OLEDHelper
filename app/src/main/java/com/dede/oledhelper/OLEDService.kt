@@ -66,18 +66,22 @@ class OLEDService : Service() {
     private var controller by Delegates.notNull<OLEDController>()
 
     private val screenOpenReceiver = object : BroadcastReceiver() {
-        private var isShowOnScreenClosed = false// 关闭屏幕时的显示状态
+        private val spKey = "status_on_screen_screen"
         override fun onReceive(context: Context?, intent: Intent?) {
             when (intent?.action) {
                 Intent.ACTION_SCREEN_OFF -> {
-                    isShowOnScreenClosed = controller.isShow()
-                    if (isShowOnScreenClosed) {
+                    val showStatusOnScreenClosed = controller.isShow()// 关闭屏幕时的显示状态
+                    // 有些设备深度休眠时会停止当前Service，唤醒时再恢复Service。
+                    sp().edit().putBoolean(spKey, showStatusOnScreenClosed).apply()
+                    if (showStatusOnScreenClosed) {
                         controller.dismiss()
                     }
                 }
                 Intent.ACTION_SCREEN_ON -> {
-                    if (isShowOnScreenClosed) {
+                    val showStatusOnScreenClosed = sp().getBoolean(spKey, false)
+                    if (showStatusOnScreenClosed) {
                         controller.show()
+                        sp().edit().putBoolean(spKey, false).apply()
                     }
                 }
             }
@@ -122,6 +126,7 @@ class OLEDService : Service() {
                     NotificationManager.IMPORTANCE_MIN
             )
             channel.setShowBadge(false)
+            channel.lockscreenVisibility = Notification.VISIBILITY_SECRET
             notificationManager.createNotificationChannel(channel)
         }
     }
@@ -145,6 +150,7 @@ class OLEDService : Service() {
                 .setContentText(getString(R.string.notify_click))
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             builder.setCategory(NOTIFY_CATEGORY)
+                    .setVisibility(Notification.VISIBILITY_SECRET)
         }
 
         intent = Intent(CloseActionReceiver.ACTION_CLOSE)

@@ -44,20 +44,6 @@
         tools:visibility="visible" />
 
     <TextView
-        android:id="@+id/tv_close_lock_notify"
-        android:layout_width="match_parent"
-        android:layout_height="45dp"
-        android:layout_marginTop="5dp"
-        android:background="?android:attr/selectableItemBackground"
-        android:clickable="true"
-        android:gravity="center_vertical"
-        android:paddingLeft="20dp"
-        android:text="@string/close_lock_notify"
-        android:textSize="15sp"
-        android:visibility="gone"
-        tools:visibility="visible" />
-
-    <TextView
         android:id="@+id/tv_ignore_battery_optimization"
         android:layout_width="match_parent"
         android:layout_height="45dp"
@@ -66,7 +52,7 @@
         android:clickable="true"
         android:gravity="center_vertical"
         android:paddingLeft="20dp"
-        android:text="@string/close_battery_optimization"
+        android:text="@string/ignore_battery_optimization"
         android:textSize="15sp"
         android:visibility="gone"
         tools:visibility="visible" />

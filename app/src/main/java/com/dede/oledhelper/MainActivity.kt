@@ -8,7 +8,10 @@ import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
 import android.net.Uri
-import android.os.*
+import android.os.Build
+import android.os.Bundle
+import android.os.IBinder
+import android.os.StrictMode
 import android.provider.Settings
 import android.view.View
 import android.view.WindowManager
@@ -19,10 +22,10 @@ import kotlin.properties.Delegates
 
 
 private val isMoreThanM = Build.VERSION.SDK_INT >= Build.VERSION_CODES.M
+private val isMoreThanN = Build.VERSION.SDK_INT >= Build.VERSION_CODES.N
 private val isMoreThanO = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
 
 private const val REQUEST_DRAW_OVERLAY_CODE = 10
-private const val REQUEST_IGNORE_BATTERY_OPTIMIZATIONS_CODE = 20
 
 class MainActivity : Activity(), ServiceConnection {
 
@@ -93,35 +96,18 @@ class MainActivity : Activity(), ServiceConnection {
             }
         }
 
-        val powerManager = getSystemService(Context.POWER_SERVICE) as PowerManager
-        if (isMoreThanM && !powerManager.isIgnoringBatteryOptimizations(packageName)) {
+        if (isMoreThanN) {// 主要针对Android N的Tile不可用的情况
             tv_ignore_battery_optimization.visibility = View.VISIBLE
-        }
-        tv_ignore_battery_optimization.setOnClickListener {
-            if (!isMoreThanM) return@setOnClickListener
-
-            val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS)
-            intent.data = Uri.parse("package:$packageName")
-            startActivityForResult(intent, REQUEST_IGNORE_BATTERY_OPTIMIZATIONS_CODE)
-        }
-
-        if (isMoreThanO) {
-            tv_close_lock_notify.visibility = View.VISIBLE
-        }
-        tv_close_lock_notify.setOnClickListener {
-            if (!isMoreThanO) return@setOnClickListener
-
-            val intent = Intent(Settings.ACTION_CHANNEL_NOTIFICATION_SETTINGS)
-            intent.putExtra(Settings.EXTRA_APP_PACKAGE, packageName)
-            intent.putExtra(Settings.EXTRA_CHANNEL_ID, OLEDService.NOTIFY_CHANNEL_ID)
-            startActivity(intent)
+            tv_ignore_battery_optimization.setOnClickListener {
+                startActivity(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS))
+            }
         }
 
         if (isMoreThanO) {
             tv_close_drawoverlay_notify.visibility = View.VISIBLE
-        }
-        tv_close_drawoverlay_notify.setOnClickListener {
-            goSystemNotifySetting()
+            tv_close_drawoverlay_notify.setOnClickListener {
+                goSystemNotifySetting()
+            }
         }
 
         requestDrawOverlays()
@@ -158,10 +144,6 @@ class MainActivity : Activity(), ServiceConnection {
         super.onActivityResult(requestCode, resultCode, data)
 
         when (requestCode) {
-            REQUEST_IGNORE_BATTERY_OPTIMIZATIONS_CODE -> {
-                tv_ignore_battery_optimization.visibility =
-                        if (resultCode == RESULT_OK) View.GONE else View.VISIBLE
-            }
             REQUEST_DRAW_OVERLAY_CODE -> {
                 if (!isMoreThanO) return
                 AlertDialog.Builder(this)
