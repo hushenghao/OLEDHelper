@@ -9,7 +9,7 @@
     <string name="go_setting">去设置</string>
     <string name="label_draw_overlay">添加屏幕蒙版，需要“允许出现在其他应用上”的权限。</string>
     <string name="draw_overlay_failed">权限异常</string>
-    <string name="close_system_notify">关闭通知栏通知</string>
-    <string name="apio_close_notify">Android 8.0及以上系统，显示屏幕悬浮窗后，会在通知栏显示通知，是否到设置关闭？</string>
     <string name="close_drawoverlay_notify">关闭“允许出现在其他应用上”通知</string>
+    <string name="first_in_title">第一次运行</string>
+    <string name="first_in_msg">如果您能看到此提示，说明本软件可以在您的设备上正常运行，请在 %1ds 内点击确定按钮</string>
 </resources>

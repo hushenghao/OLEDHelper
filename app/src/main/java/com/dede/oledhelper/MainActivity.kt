@@ -1,17 +1,10 @@
 package com.dede.oledhelper
 
-import android.annotation.SuppressLint
 import android.app.Activity
 import android.app.AlertDialog
-import android.content.ComponentName
-import android.content.Context
-import android.content.Intent
-import android.content.ServiceConnection
+import android.content.*
 import android.net.Uri
-import android.os.Build
-import android.os.Bundle
-import android.os.IBinder
-import android.os.StrictMode
+import android.os.*
 import android.provider.Settings
 import android.view.View
 import android.view.WindowManager
@@ -26,10 +19,13 @@ private val isMoreThanN = Build.VERSION.SDK_INT >= Build.VERSION_CODES.N
 private val isMoreThanO = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
 
 private const val REQUEST_DRAW_OVERLAY_CODE = 10
+private const val KEY_FIRST_IN = "first_in"
+private const val MAX_DELAY = 5
 
 class MainActivity : Activity(), ServiceConnection {
 
     private var aidl: IOLED by Delegates.notNull()
+    private val delayHandler = Handler()
 
     override fun onServiceDisconnected(name: ComponentName?) {
     }
@@ -40,7 +36,6 @@ class MainActivity : Activity(), ServiceConnection {
         switch_.isChecked = aidl.isShow
     }
 
-    @SuppressLint("BatteryLife")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         if (BuildConfig.DEBUG) {
@@ -93,6 +88,10 @@ class MainActivity : Activity(), ServiceConnection {
                 aidl.dismiss()
             } else {
                 aidl.show()
+                val firstIn = sp().getBoolean(KEY_FIRST_IN, true)
+                if (firstIn) {
+                    showFirstInDialog()
+                }
             }
         }
 
@@ -111,10 +110,51 @@ class MainActivity : Activity(), ServiceConnection {
         }
 
         requestDrawOverlays()
+
+        val filter = IntentFilter(ACTION_TILE_CLICK)
+        registerReceiver(tileClickReceiver, filter)
+    }
+
+    private val tileClickReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            if (intent?.action != ACTION_TILE_CLICK) return
+            val isShow = intent.getBooleanExtra(EXTRA_IS_SHOW, false)
+            switch_.isChecked = isShow// 更新界面
+        }
+    }
+
+    /**
+     * 第一次运行的弹窗，5秒不点击自动关闭
+     */
+    private fun showFirstInDialog() {
+        val dialog = AlertDialog.Builder(this)
+                .setTitle(R.string.first_in_title)
+                .setMessage(getString(R.string.first_in_msg, MAX_DELAY))
+                .setPositiveButton(android.R.string.yes) { _, _ ->
+                    delayHandler.removeCallbacksAndMessages(null)
+                    sp().edit().putBoolean(KEY_FIRST_IN, false).apply()
+                }
+                .setCancelable(false)
+                .create()
+        var time = 0
+        var runnable: Runnable? = null
+        runnable = Runnable {
+            val t = MAX_DELAY - time
+            if (t <= 0) {
+                switch_.isChecked = false
+                dialog.dismiss()
+                return@Runnable
+            }
+            dialog.setMessage(getString(R.string.first_in_msg, t))
+            time++
+            delayHandler.postDelayed(runnable, 1000)
+        }
+        delayHandler.postDelayed(runnable, 1000)
+        dialog.show()
     }
 
     private fun requestDrawOverlays() {
-        if (!isMoreThanM || Settings.canDrawOverlays(this)) return
+        if (!isMoreThanM || canDrawOverlays()) return
 
         AlertDialog.Builder(this)
                 .setTitle(R.string.request_draw_overlay)
@@ -145,18 +185,7 @@ class MainActivity : Activity(), ServiceConnection {
 
         when (requestCode) {
             REQUEST_DRAW_OVERLAY_CODE -> {
-                if (!isMoreThanO) return
-                AlertDialog.Builder(this)
-                        .setTitle(R.string.close_system_notify)
-                        .setMessage(R.string.apio_close_notify)
-                        .setNegativeButton(android.R.string.cancel, null)
-                        .setPositiveButton(R.string.go_setting) { _, _ ->
-                            goSystemNotifySetting()
-                        }
-                        .create()
-                        .show()
-
-                if (isMoreThanM && !Settings.canDrawOverlays(this)) {
+                if (!canDrawOverlays()) {
                     Toast.makeText(this, R.string.draw_overlay_failed, Toast.LENGTH_SHORT).show()
                 }
             }
@@ -164,7 +193,8 @@ class MainActivity : Activity(), ServiceConnection {
     }
 
     override fun onDestroy() {
-        super.onDestroy()
         unbindService(this)
+        unregisterReceiver(tileClickReceiver)
+        super.onDestroy()
     }
 }

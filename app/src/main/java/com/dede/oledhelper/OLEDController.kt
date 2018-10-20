@@ -6,7 +6,6 @@ import android.graphics.PixelFormat
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
-import android.provider.Settings
 import android.view.View
 import android.view.WindowManager
 
@@ -56,9 +55,7 @@ class OLEDController(private val context: Context) {
     }
 
     fun show() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            if (!Settings.canDrawOverlays(context)) return
-        }
+        if (!context.canDrawOverlays()) return
         if (isShowing) return
         handler.post {
             manager.addView(view, params)

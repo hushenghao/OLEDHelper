@@ -12,6 +12,9 @@ import kotlin.properties.Delegates
 /**
  * Created by hsh on 2018/6/19.
  */
+const val ACTION_TILE_CLICK = "com.dede.oledhelper.TService.onClick"
+const val EXTRA_IS_SHOW = "is_show"
+
 @TargetApi(Build.VERSION_CODES.N)
 class TService : TileService(), ServiceConnection {
 
@@ -69,7 +72,11 @@ class TService : TileService(), ServiceConnection {
     }
 
     private fun updateTile() {
-        updateTile(aidl.isShow)
+        val isShow = aidl.isShow
+        updateTile(isShow)
+        val intent = Intent(ACTION_TILE_CLICK)
+                .putExtra(EXTRA_IS_SHOW, isShow)
+        sendBroadcast(intent)// 发送tile点击广播
     }
 
     override fun onClick() {
