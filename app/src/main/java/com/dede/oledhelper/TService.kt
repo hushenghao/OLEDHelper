@@ -34,7 +34,6 @@ class TService : TileService(), ServiceConnection {
 
     private val innerCloseReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
-            unbindService(this@TService)
             updateTile(false)
         }
     }
@@ -69,14 +68,15 @@ class TService : TileService(), ServiceConnection {
             qsTile.state = Tile.STATE_INACTIVE
         }
         qsTile.updateTile()
+
+        val intent = Intent(ACTION_TILE_CLICK)
+                .putExtra(EXTRA_IS_SHOW, isShow)
+        sendBroadcast(intent)// 发送tile点击广播
     }
 
     private fun updateTile() {
         val isShow = aidl.isShow
         updateTile(isShow)
-        val intent = Intent(ACTION_TILE_CLICK)
-                .putExtra(EXTRA_IS_SHOW, isShow)
-        sendBroadcast(intent)// 发送tile点击广播
     }
 
     override fun onClick() {

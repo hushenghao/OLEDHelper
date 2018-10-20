@@ -26,7 +26,7 @@ class OLEDService : Service() {
         const val DEFAULT_ALPHA = .3f// 遮罩的默认不透明度
         const val MAX_ALPHA = .8f// 遮罩最大不透明度
 
-        private const val SERVICE_ID = 0xFF00
+        private const val NOTIFY_SERVICE_ID = 0xFF00
         const val NOTIFY_CHANNEL_ID = "OLEDService"
         private const val NOTIFY_CATEGORY = "OLEDService"
     }
@@ -99,6 +99,20 @@ class OLEDService : Service() {
         createNotifyChannel()
     }
 
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        val has = intent?.hasExtra(EXTRA_IS_SHOW) ?: false
+        if (has) {
+            val isShow = intent!!.getBooleanExtra(EXTRA_IS_SHOW, false)
+            if (isShow) {
+                iBinder.show()
+            } else {
+                iBinder.dismiss()
+                stopForeground(true)// 取消通知
+            }
+        }
+        return super.onStartCommand(intent, flags, startId)
+    }
+
     override fun onRebind(intent: Intent?) {
         Log.i(TAG, "onRebind: ")
     }
@@ -110,7 +124,7 @@ class OLEDService : Service() {
             stopSelf()
             return false
         }
-        startForeground(SERVICE_ID, createNotify())
+        startForeground(NOTIFY_SERVICE_ID, createNotify())
         return true
     }
 
