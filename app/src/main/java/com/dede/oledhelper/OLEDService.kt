@@ -172,14 +172,14 @@ class OLEDService : Service() {
         pendingIntent = PendingIntent.getBroadcast(this, 0, intent, 0)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             val action = Notification.Action.Builder(
-                    Icon.createWithResource(this, R.drawable.ic_close_black),
+                    Icon.createWithResource(this, R.drawable.ic_close),
                     getString(R.string.notify_action_close),
                     pendingIntent
             )
                     .build()
             builder.addAction(action)
         } else {
-            builder.addAction(R.drawable.ic_close_black, getString(R.string.notify_action_close), pendingIntent)
+            builder.addAction(R.drawable.ic_close, getString(R.string.notify_action_close), pendingIntent)
         }
 
         return builder.build()

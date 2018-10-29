@@ -13,7 +13,6 @@ class OLEDController(private val context: Context) {
 
     companion object {
         const val KEY_ALPHA = "alpha"
-        private const val TAG = "OLEDController"
     }
 
     private var isShowing = false
