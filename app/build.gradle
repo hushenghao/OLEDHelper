@@ -2,19 +2,53 @@ apply plugin: 'com.android.application'
 apply plugin: 'kotlin-android'
 apply plugin: 'kotlin-android-extensions'
 
+/**
+ * 一些key和签名配置，如果报错在项目根目录新建key.properties文件，内容如下
+ * storePassword=xxx
+ * keyPassword=xxx
+ * keyAlias=key0
+ * storeFile=keystore路径
+ *
+ */
+def keyPropertiesFile = rootProject.file("key.properties")
+def keyProperties = new Properties()
+keyProperties.load(new FileInputStream(keyPropertiesFile))
+
 android {
     compileSdkVersion 28
     defaultConfig {
         applicationId "com.dede.oledhelper"
         minSdkVersion 16
         targetSdkVersion 28
-        versionCode 2
-        versionName "1.0.1"
+        versionCode 3
+        versionName "1.0.2"
     }
+
+    signingConfigs {
+        release {
+            keyAlias keyProperties['keyAlias']
+            keyPassword keyProperties['keyPassword']
+            storeFile file(keyProperties['storeFile'])
+            storePassword keyProperties['storePassword']
+        }
+    }
+
     buildTypes {
         release {
+            signingConfig signingConfigs.release
             minifyEnabled true
+            zipAlignEnabled true
+            debuggable false
+            shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+
+    applicationVariants.all { variant ->
+        variant.outputs.all {
+            def buildType = variant.buildType.name
+            def version = "${variant.versionName}(${variant.versionCode})"
+            outputFileName = "OLED_Helper_${buildType}_${version}.apk"
         }
     }
 }
